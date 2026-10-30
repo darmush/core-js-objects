@@ -355,40 +355,65 @@ function group(array, keySelector, valueSelector) {
 
 const cssSelectorBuilder = {
   result: '',
-  add(value) {
+  lastPart: -1,
+  add(value, type) {
+    const ORDER = [
+      'element',
+      'id',
+      'class',
+      'attr',
+      'pseudoClass',
+      'pseudoElement',
+    ];
+    const UNIQUE = ['element', 'id', 'pseudoElement'];
+
+    const index = ORDER.indexOf(type);
+
+    if (index === this.lastPart && UNIQUE.includes(type)) {
+      throw new Error(
+        'Element, id and pseudo-element should not occur more than one time inside the selector'
+      );
+    }
+    if (index < this.lastPart) {
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+
     const selector = Object.create(cssSelectorBuilder);
     selector.result = this.result + value;
+    selector.lastPart = index;
     return selector;
   },
 
   element(value) {
-    return this.add(value);
+    return this.add(value, 'element');
   },
 
   id(value) {
-    return this.add(`#${value}`);
+    return this.add(`#${value}`, 'id');
   },
 
   class(value) {
-    return this.add(`.${value}`);
+    return this.add(`.${value}`, 'class');
   },
 
   attr(value) {
-    return this.add(`[${value}]`);
+    return this.add(`[${value}]`, 'attr');
   },
 
   pseudoClass(value) {
-    return this.add(`:${value}`);
+    return this.add(`:${value}`, 'pseudoClass');
   },
 
   pseudoElement(value) {
-    return this.add(`::${value}`);
+    return this.add(`::${value}`, 'pseudoElement');
   },
 
   combine(selector1, combinator, selector2) {
-    return this.add(
-      `${selector1.stringify()} ${combinator} ${selector2.stringify()}`
-    );
+    const selector = Object.create(cssSelectorBuilder);
+    selector.result = `${selector1.stringify()} ${combinator} ${selector2.stringify()}`;
+    return selector;
   },
 
   stringify() {
